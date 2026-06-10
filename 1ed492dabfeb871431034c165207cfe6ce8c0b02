@@ -1,0 +1,53 @@
+.gitignore
+  b484444c2fac060e 40-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "1ed492dabfeb871431034c165207cfe6ce8c0b02",
+  "prompts": {
+    "b484444c2fac060e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb16d-f4ee-77b1-a247-76e33f907e17",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhouatie",
+      "messages": [],
+      "total_additions": 845,
+      "total_deletions": 0,
+      "accepted_lines": 845,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".codex/skills/openspec-propose/SKILL.md": {
+          "additions": 111,
+          "accepted_lines": 111
+        },
+        ".codex/skills/openspec-archive-change/SKILL.md": {
+          "additions": 117,
+          "accepted_lines": 117
+        },
+        ".codex/skills/openspec-explore/SKILL.md": {
+          "additions": 287,
+          "accepted_lines": 287
+        },
+        "openspec/config.yaml": {
+          "additions": 20,
+          "accepted_lines": 20
+        },
+        ".gitignore": {
+          "additions": 4,
+          "accepted_lines": 4
+        },
+        ".codex/skills/openspec-apply-change/SKILL.md": {
+          "additions": 159,
+          "accepted_lines": 159
+        },
+        ".codex/skills/openspec-sync-specs/SKILL.md": {
+          "additions": 147,
+          "accepted_lines": 147
+        }
+      }
+    }
+  }
+}
