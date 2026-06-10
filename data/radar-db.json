@@ -1,0 +1,154 @@
+{
+  "version": 2,
+  "updatedAt": "2026-06-10T09:58:48.731Z",
+  "settings": {
+    "marketPhase": "均衡",
+    "maxSingleWeight": 20,
+    "weakMarketMaxWeight": 8
+  },
+  "candidates": [
+    {
+      "id": "668fd7e2-34ff-4fbf-9060-64635bf3974d",
+      "symbol": "",
+      "price": null,
+      "changePct": null,
+      "volume": null,
+      "lastQuoteAt": null,
+      "quoteSource": null,
+      "sample": true,
+      "createdAt": "2026-06-10T09:52:37.002Z",
+      "updatedAt": "2026-06-10T09:52:37.002Z",
+      "name": "算力设备模板",
+      "code": "DEMO-001",
+      "theme": "AI 算力",
+      "tags": [
+        "订单密度",
+        "国产替代"
+      ],
+      "thesis": "推理算力扩容带动订单密度提升，股价先于利润表反应。",
+      "riskNotes": "拥挤度、交付延迟、估值透支",
+      "market": {
+        "rs": 19,
+        "theme": 10,
+        "flow": 9,
+        "structure": 8,
+        "catalyst": 9
+      },
+      "fundamental": {
+        "growth": 11,
+        "position": 8,
+        "valuation": 6,
+        "cashflow": 5,
+        "governance": 5
+      },
+      "riskPenalty": 9,
+      "trend": [
+        48,
+        52,
+        57,
+        65,
+        71,
+        76,
+        82,
+        87,
+        91
+      ]
+    },
+    {
+      "id": "2f5a51c0-0109-461b-a741-0e9e1d2bb42e",
+      "symbol": "",
+      "price": null,
+      "changePct": null,
+      "volume": null,
+      "lastQuoteAt": null,
+      "quoteSource": null,
+      "sample": true,
+      "createdAt": "2026-06-10T09:52:37.002Z",
+      "updatedAt": "2026-06-10T09:52:37.002Z",
+      "name": "机器人部件模板",
+      "code": "DEMO-002",
+      "theme": "机器人",
+      "tags": [
+        "量产验证",
+        "弹性"
+      ],
+      "thesis": "机器人量产预期从概念扩散到核心部件订单，变化率优于静态利润。",
+      "riskNotes": "量产不及预期、客户议价、技术路线切换",
+      "market": {
+        "rs": 17,
+        "theme": 9,
+        "flow": 8,
+        "structure": 8,
+        "catalyst": 8
+      },
+      "fundamental": {
+        "growth": 9,
+        "position": 8,
+        "valuation": 7,
+        "cashflow": 5,
+        "governance": 5
+      },
+      "riskPenalty": 8,
+      "trend": [
+        38,
+        43,
+        49,
+        53,
+        61,
+        68,
+        76,
+        82,
+        85
+      ]
+    },
+    {
+      "id": "29f91b0d-50d7-4e22-b177-4aac91792ac8",
+      "symbol": "",
+      "price": null,
+      "changePct": null,
+      "volume": null,
+      "lastQuoteAt": null,
+      "quoteSource": null,
+      "sample": true,
+      "createdAt": "2026-06-10T09:52:37.002Z",
+      "updatedAt": "2026-06-10T09:52:37.002Z",
+      "name": "高股息模板",
+      "code": "DEMO-003",
+      "theme": "高股息",
+      "tags": [
+        "防守",
+        "现金流"
+      ],
+      "thesis": "弱市中用现金流和分红稳定组合波动，不追求价值突变速度。",
+      "riskNotes": "利率反转、盈利下修、周期回落",
+      "market": {
+        "rs": 12,
+        "theme": 7,
+        "flow": 5,
+        "structure": 7,
+        "catalyst": 5
+      },
+      "fundamental": {
+        "growth": 5,
+        "position": 7,
+        "valuation": 9,
+        "cashflow": 8,
+        "governance": 6
+      },
+      "riskPenalty": 4,
+      "trend": [
+        61,
+        63,
+        64,
+        65,
+        66,
+        65,
+        67,
+        68,
+        68
+      ]
+    }
+  ],
+  "holdings": [],
+  "journal": []
+}

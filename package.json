@@ -1,0 +1,23 @@
+{
+  "name": "mutation-radar",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Next.js 本地实战投研工作台：价值突变雷达",
+  "scripts": {
+    "dev": "next dev -H 127.0.0.1 -p 4173",
+    "build": "next build",
+    "start": "next start -H 127.0.0.1 -p 4173",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.2.2",
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "typescript": "5.9.3"
+  }
+}

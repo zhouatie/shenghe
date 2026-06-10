@@ -1,0 +1,41 @@
+# dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# production
+build/
+dist/
+
+# local env
+.env
+.env.*
+!.env.example
+
+# logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# local database runtime files
+data/*.sqlite
+data/*.sqlite-*
+data/*.db
+data/*.db-*
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# accidental home-directory cache copied into project
+~/
