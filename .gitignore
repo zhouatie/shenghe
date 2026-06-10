@@ -37,5 +37,9 @@ data/*.db-*
 .vscode/
 .idea/
 
+# local agent/spec tooling metadata
+.codex/
+openspec/
+
 # accidental home-directory cache copied into project
 ~/
