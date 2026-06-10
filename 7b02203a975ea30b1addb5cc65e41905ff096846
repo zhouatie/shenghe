@@ -1,0 +1,196 @@
+openspec/specs/value-mutation-radar/spec.md
+  0b71a85bf7d869b9 21,42-47,50,69-73,76,84,94-98,215-217,219
+data/radar-db.json
+  0b71a85bf7d869b9 2-3,9
+lib/plate-rotation.fixtures.ts
+  0b71a85bf7d869b9 1-35
+app/components/dashboard.tsx
+  0bc37ab8ba24c47f 30,814
+  0b71a85bf7d869b9 7,9,15-16,20-29,31-34,43-45,55-57,193-236,252,316-318,357-365,390-396,612-618,628,652-813,815-904,929-939,960,1034,1037,1040,1043,1072-1084,1117-1121,1271-1282,1288-1328
+app/actions.ts
+  0b71a85bf7d869b9 7,9,15-16,20-29,84-104
+lib/types.ts
+  0b71a85bf7d869b9 88-201,266,285-289
+lib/plate-rotation.ts
+  0b71a85bf7d869b9 1-497
+app/globals.css
+  0b71a85bf7d869b9 419-567,819-821,1044-1045,1126-1127
+openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/design.md
+  0b71a85bf7d869b9 1-87
+openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/proposal.md
+  0b71a85bf7d869b9 1-31
+openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/tasks.md
+  0b71a85bf7d869b9 1-44
+openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/.openspec.yaml
+  0b71a85bf7d869b9 1-2
+README.md
+  0b71a85bf7d869b9 3,5-18,25-39,41,43,45,47,49-125,131-136,139-142
+docs/shenghe-investment-thoughts.md
+  ff2139072fc0d0d8 1-217
+lib/db.ts
+  0b71a85bf7d869b9 6-12,26-33,91-113,140,144,149,317-387,441-465,468,477,493-508,760-865
+openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/specs/plate-rotation-market-data/spec.md
+  0b71a85bf7d869b9 1-104
+openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/specs/value-mutation-radar/spec.md
+  0b71a85bf7d869b9 1-91
+openspec/specs/plate-rotation-market-data/spec.md
+  0b71a85bf7d869b9 1-108
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.8",
+  "base_commit_sha": "7b02203a975ea30b1addb5cc65e41905ff096846",
+  "prompts": {
+    "0b71a85bf7d869b9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb208-ed47-7e92-8716-06c4c6a8a063",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhouatie",
+      "messages": [],
+      "total_additions": 2589,
+      "total_deletions": 296,
+      "accepted_lines": 2201,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "app/actions.ts": {
+          "additions": 38,
+          "deletions": 1,
+          "accepted_lines": 38
+        },
+        "app/globals.css": {
+          "additions": 158,
+          "accepted_lines": 158
+        },
+        "lib/plate-rotation.fixtures.ts": {
+          "additions": 35,
+          "accepted_lines": 35
+        },
+        "openspec/changes/add-plate-rotation-market-data/specs/value-mutation-radar/spec.md": {
+          "additions": 91
+        },
+        "lib/plate-rotation.ts": {
+          "additions": 498,
+          "deletions": 1,
+          "accepted_lines": 497
+        },
+        "openspec/changes/add-plate-rotation-market-data/proposal.md": {
+          "additions": 31
+        },
+        "openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/specs/value-mutation-radar/spec.md": {
+          "additions": 91,
+          "accepted_lines": 91
+        },
+        "openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/tasks.md": {
+          "additions": 44,
+          "accepted_lines": 44
+        },
+        "app/components/dashboard.tsx": {
+          "additions": 439,
+          "deletions": 5,
+          "accepted_lines": 438
+        },
+        "openspec/changes/add-plate-rotation-market-data/design.md": {
+          "additions": 87
+        },
+        "openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/design.md": {
+          "additions": 87,
+          "accepted_lines": 87
+        },
+        "openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/specs/plate-rotation-market-data/spec.md": {
+          "additions": 104,
+          "accepted_lines": 104
+        },
+        "data/radar-db.json": {
+          "additions": 12,
+          "deletions": 154,
+          "accepted_lines": 12
+        },
+        "openspec/changes/add-plate-rotation-market-data/specs/plate-rotation-market-data/spec.md": {
+          "additions": 104
+        },
+        "openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/.openspec.yaml": {
+          "additions": 2,
+          "accepted_lines": 2
+        },
+        "openspec/changes/archive/2026-06-10-add-plate-rotation-market-data/proposal.md": {
+          "additions": 31,
+          "accepted_lines": 31
+        },
+        "lib/db.ts": {
+          "additions": 266,
+          "deletions": 68,
+          "accepted_lines": 266
+        },
+        "lib/types.ts": {
+          "additions": 122,
+          "accepted_lines": 122
+        },
+        "openspec/specs/plate-rotation-market-data/spec.md": {
+          "additions": 108,
+          "accepted_lines": 108
+        },
+        "openspec/specs/value-mutation-radar/spec.md": {
+          "additions": 26,
+          "deletions": 6,
+          "accepted_lines": 26
+        },
+        "openspec/changes/add-plate-rotation-market-data/tasks.md": {
+          "additions": 71,
+          "deletions": 27
+        },
+        "README.md": {
+          "additions": 142,
+          "deletions": 34,
+          "accepted_lines": 142
+        },
+        "openspec/changes/add-plate-rotation-market-data/.openspec.yaml": {
+          "additions": 2
+        }
+      }
+    },
+    "0bc37ab8ba24c47f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb21a-de29-7252-a972-69c8adb181d9",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhouatie",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 1,
+      "accepted_lines": 2,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "app/components/dashboard.tsx": {
+          "additions": 2,
+          "deletions": 1,
+          "accepted_lines": 2
+        }
+      }
+    },
+    "ff2139072fc0d0d8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb21e-79b3-7993-8862-b6f5d45b76b6",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhouatie",
+      "messages": [],
+      "total_additions": 434,
+      "total_deletions": 0,
+      "accepted_lines": 217,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "shenghe-investment-thoughts.md": {
+          "additions": 217
+        },
+        "docs/shenghe-investment-thoughts.md": {
+          "additions": 217,
+          "accepted_lines": 217
+        }
+      }
+    }
+  }
+}
