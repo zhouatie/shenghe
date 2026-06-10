@@ -1,0 +1,71 @@
+.gitignore
+  e6a7794d984e642f 40
+openspec/config.yaml
+  b484444c2fac060e 1-2
+  e6a7794d984e642f 3-5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "5714e83332f8c6ea3c100bfcfec27f8428b24425",
+  "prompts": {
+    "b484444c2fac060e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb16d-f4ee-77b1-a247-76e33f907e17",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhouatie",
+      "messages": [],
+      "total_additions": 0,
+      "total_deletions": 0,
+      "accepted_lines": 823,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".codex/skills/openspec-explore/SKILL.md": {
+          "accepted_lines": 287
+        },
+        ".codex/skills/openspec-archive-change/SKILL.md": {
+          "accepted_lines": 117
+        },
+        ".codex/skills/openspec-sync-specs/SKILL.md": {
+          "accepted_lines": 147
+        },
+        ".codex/skills/openspec-apply-change/SKILL.md": {
+          "accepted_lines": 159
+        },
+        ".codex/skills/openspec-propose/SKILL.md": {
+          "accepted_lines": 111
+        },
+        "openspec/config.yaml": {
+          "accepted_lines": 2
+        }
+      }
+    },
+    "e6a7794d984e642f": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb183-fa0f-7a41-9ee5-e6ef5da1f288",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhouatie",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 20,
+      "accepted_lines": 4,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        ".gitignore": {
+          "additions": 1,
+          "deletions": 2,
+          "accepted_lines": 1
+        },
+        "openspec/config.yaml": {
+          "additions": 3,
+          "deletions": 18,
+          "accepted_lines": 3
+        }
+      }
+    }
+  }
+}
