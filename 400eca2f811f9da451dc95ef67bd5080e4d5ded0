@@ -1,0 +1,125 @@
+app/layout.tsx
+  b484444c2fac060e 1-15
+README.md
+  b484444c2fac060e 1-34
+app/actions.ts
+  b484444c2fac060e 1-70
+types/node-sqlite.d.ts
+  b484444c2fac060e 1-14
+next.config.ts
+  b484444c2fac060e 1-7
+package.json
+  b484444c2fac060e 1-23
+lib/parse.ts
+  b484444c2fac060e 1-80
+app/api/export/route.ts
+  b484444c2fac060e 1-12
+app/page.tsx
+  b484444c2fac060e 1-10
+app/globals.css
+  b484444c2fac060e 1-988
+lib/db.ts
+  b484444c2fac060e 1-695
+lib/scoring.ts
+  b484444c2fac060e 1-112
+app/components/dashboard.tsx
+  b484444c2fac060e 1-894
+.gitignore
+  b484444c2fac060e 1-41
+tsconfig.json
+  b484444c2fac060e 1-41
+lib/types.ts
+  b484444c2fac060e 1-169
+data/radar-db.json
+  b484444c2fac060e 1-154
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8-ntes.9",
+  "base_commit_sha": "400eca2f811f9da451dc95ef67bd5080e4d5ded0",
+  "prompts": {
+    "b484444c2fac060e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019eb16d-f4ee-77b1-a247-76e33f907e17",
+        "model": "gpt-5.5"
+      },
+      "human_author": "zhoushitie",
+      "messages": [],
+      "total_additions": 3359,
+      "total_deletions": 0,
+      "accepted_lines": 3359,
+      "overriden_lines": 0,
+      "per_file_stats": {
+        "app/api/export/route.ts": {
+          "additions": 12,
+          "accepted_lines": 12
+        },
+        "app/page.tsx": {
+          "additions": 10,
+          "accepted_lines": 10
+        },
+        "next.config.ts": {
+          "additions": 7,
+          "accepted_lines": 7
+        },
+        "lib/scoring.ts": {
+          "additions": 112,
+          "accepted_lines": 112
+        },
+        "README.md": {
+          "additions": 34,
+          "accepted_lines": 34
+        },
+        "package.json": {
+          "additions": 23,
+          "accepted_lines": 23
+        },
+        "lib/db.ts": {
+          "additions": 695,
+          "accepted_lines": 695
+        },
+        "lib/parse.ts": {
+          "additions": 80,
+          "accepted_lines": 80
+        },
+        "tsconfig.json": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "app/actions.ts": {
+          "additions": 70,
+          "accepted_lines": 70
+        },
+        "app/globals.css": {
+          "additions": 988,
+          "accepted_lines": 988
+        },
+        "app/components/dashboard.tsx": {
+          "additions": 894,
+          "accepted_lines": 894
+        },
+        "lib/types.ts": {
+          "additions": 169,
+          "accepted_lines": 169
+        },
+        "data/radar-db.json": {
+          "additions": 154,
+          "accepted_lines": 154
+        },
+        ".gitignore": {
+          "additions": 41,
+          "accepted_lines": 41
+        },
+        "types/node-sqlite.d.ts": {
+          "additions": 14,
+          "accepted_lines": 14
+        },
+        "app/layout.tsx": {
+          "additions": 15,
+          "accepted_lines": 15
+        }
+      }
+    }
+  }
+}
