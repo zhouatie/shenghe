@@ -85,6 +85,120 @@ export type ThemeSummary = {
   color: string;
 };
 
+export type PlateRotationSource = "kaipan" | "ths";
+
+export type PlateRotationValueType = "score" | "pct";
+
+export type PlateDirection = "red" | "green";
+
+export type PlateRankingItem = {
+  source: PlateRotationSource;
+  tradeDate: string;
+  rank: number;
+  code: string;
+  name: string;
+  value: string;
+  numericValue: number | null;
+  valueType: PlateRotationValueType;
+  color: PlateDirection;
+  refreshedAt: string;
+};
+
+export type PlateCurvePoint = {
+  date: string;
+  value: number | null;
+  listed: boolean;
+  symbol: string;
+};
+
+export type PlateCurveSeries = {
+  source: PlateRotationSource;
+  name: string;
+  points: PlateCurvePoint[];
+};
+
+export type PlateCurve = {
+  source: PlateRotationSource;
+  dates: string[];
+  series: PlateCurveSeries[];
+  refreshedAt: string;
+};
+
+export type PlateHead = {
+  rank: string;
+  code: string;
+  name: string;
+};
+
+export type PlateDailyHeads = {
+  date: string;
+  heads: PlateHead[];
+};
+
+export type PlateDragonKing = {
+  code: string;
+  name: string;
+  count: number;
+  positions: string[];
+};
+
+export type PlateStrengthPoint = {
+  date: string;
+  strength: number | null;
+  volume: number | null;
+};
+
+export type PlateDetail = {
+  plateCode: string;
+  plateName: string;
+  source: PlateRotationSource;
+  kings: PlateDragonKing[];
+  dailyHeads: PlateDailyHeads[];
+  strength: PlateStrengthPoint[];
+  refreshedAt: string;
+};
+
+export type MarketScoreSuggestion = {
+  candidateId?: string;
+  candidateCode?: string;
+  candidateName?: string;
+  plateCode: string;
+  plateName: string;
+  source: PlateRotationSource;
+  market: MarketScores;
+  evidence: string[];
+  refreshedAt: string;
+};
+
+export type PlateCandidateDraft = {
+  code: string;
+  name: string;
+  theme: string;
+  tags: string[];
+  thesis: string;
+  riskNotes: string;
+  market: MarketScores;
+  evidence: string[];
+  sourcePlateCode: string;
+  sourcePlateName: string;
+  source: PlateRotationSource;
+};
+
+export type PlateRefreshStatus = {
+  ok: boolean;
+  message: string;
+  refreshedAt: string;
+};
+
+export type PlateRotationState = {
+  rankings: Record<PlateRotationSource, PlateRankingItem[]>;
+  curves: Record<PlateRotationSource, PlateCurve | null>;
+  details: PlateDetail[];
+  suggestions: MarketScoreSuggestion[];
+  drafts: PlateCandidateDraft[];
+  status: PlateRefreshStatus | null;
+};
+
 export type Holding = {
   id: string;
   candidateId: string;
@@ -149,6 +263,7 @@ export type AppState = {
   settings: Settings;
   candidates: Candidate[];
   themes: ThemeSummary[];
+  plate: PlateRotationState;
   holdings: Holding[];
   journal: JournalEntry[];
   metrics: AppMetrics;
@@ -165,5 +280,12 @@ export type QuoteRefreshResult = {
   skipped?: number;
   source?: string;
   message?: string;
+  state: AppState;
+};
+
+export type PlateRefreshResult = {
+  ok: boolean;
+  updated: number;
+  message: string;
   state: AppState;
 };

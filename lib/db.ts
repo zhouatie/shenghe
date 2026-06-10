@@ -3,6 +3,13 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
+import {
+  buildMarketSuggestion,
+  buildPlateCandidateDrafts,
+  emptyPlateState,
+  fetchPlateDetail,
+  fetchPlateRotationSnapshot,
+} from "@/lib/plate-rotation";
 import { parseCsv, clamp, nullableNumber, normalizeTrend, numberOr, splitTags } from "@/lib/parse";
 import { deriveThemes, healthFor, scoreCandidate } from "@/lib/scoring";
 import type {
@@ -16,6 +23,14 @@ import type {
   JournalEntry,
   JournalInput,
   MarketScores,
+  PlateCandidateDraft,
+  PlateCurve,
+  PlateDetail,
+  PlateRankingItem,
+  PlateRefreshResult,
+  PlateRefreshStatus,
+  PlateRotationSource,
+  PlateRotationState,
   QuoteRefreshResult,
   Settings,
 } from "@/lib/types";
@@ -73,78 +88,35 @@ type JournalRow = Row & {
   created_at: string;
 };
 
+type PlateRankingRow = Row & {
+  source: PlateRotationSource;
+  trade_date: string;
+  rank: number;
+  code: string;
+  name: string;
+  value: string;
+  numeric_value: number | null;
+  value_type: "score" | "pct";
+  color: "red" | "green";
+  refreshed_at: string;
+};
+
+type PlatePayloadRow = Row & {
+  kind: string;
+  source: string;
+  plate_code: string;
+  payload_json: string;
+  status: string;
+  message: string;
+  refreshed_at: string;
+};
+
 type LegacyDb = {
   settings?: Partial<Settings>;
   candidates?: Array<Record<string, unknown>>;
   holdings?: Array<Record<string, unknown>>;
   journal?: Array<Record<string, unknown>>;
 };
-
-const seedCandidates: CandidateInput[] = [
-  {
-    name: "算力设备模板",
-    code: "DEMO-001",
-    theme: "AI 算力",
-    tags: ["订单密度", "国产替代"],
-    thesis: "推理算力扩容带动订单密度提升，股价先于利润表反应。",
-    riskNotes: "拥挤度、交付延迟、估值透支",
-    rs: 19,
-    themeScore: 10,
-    flow: 9,
-    structure: 8,
-    catalyst: 9,
-    growth: 11,
-    position: 8,
-    valuation: 6,
-    cashflow: 5,
-    governance: 5,
-    riskPenalty: 9,
-    trend: [48, 52, 57, 65, 71, 76, 82, 87, 91],
-    sample: true,
-  },
-  {
-    name: "机器人部件模板",
-    code: "DEMO-002",
-    theme: "机器人",
-    tags: ["量产验证", "弹性"],
-    thesis: "机器人量产预期从概念扩散到核心部件订单，变化率优于静态利润。",
-    riskNotes: "量产不及预期、客户议价、技术路线切换",
-    rs: 17,
-    themeScore: 9,
-    flow: 8,
-    structure: 8,
-    catalyst: 8,
-    growth: 9,
-    position: 8,
-    valuation: 7,
-    cashflow: 5,
-    governance: 5,
-    riskPenalty: 8,
-    trend: [38, 43, 49, 53, 61, 68, 76, 82, 85],
-    sample: true,
-  },
-  {
-    name: "高股息模板",
-    code: "DEMO-003",
-    theme: "高股息",
-    tags: ["防守", "现金流"],
-    thesis: "弱市中用现金流和分红稳定组合波动，不追求价值突变速度。",
-    riskNotes: "利率反转、盈利下修、周期回落",
-    rs: 12,
-    themeScore: 7,
-    flow: 5,
-    structure: 7,
-    catalyst: 5,
-    growth: 5,
-    position: 7,
-    valuation: 9,
-    cashflow: 8,
-    governance: 6,
-    riskPenalty: 4,
-    trend: [61, 63, 64, 65, 66, 65, 67, 68, 68],
-    sample: true,
-  },
-];
 
 let database: DatabaseSync | undefined;
 
@@ -165,14 +137,16 @@ export async function getAppState(): Promise<AppState> {
   const holdings = readHoldings(db, candidateMap, settings);
   const journal = readJournal(db);
   const themes = deriveThemes(candidates);
+  const plate = readPlateState(db, candidates);
   const dueToday = new Date().toISOString().slice(0, 10);
 
   return {
-    version: 3,
+    version: 4,
     updatedAt: readSetting(db, "updatedAt", new Date().toISOString()),
     settings,
     candidates,
     themes,
+    plate,
     holdings,
     journal,
     metrics: {
@@ -340,6 +314,79 @@ export async function refreshQuotes(): Promise<QuoteRefreshResult> {
   }
 }
 
+export async function refreshPlateRotationData(): Promise<PlateRefreshResult> {
+  const db = getDb();
+  const snapshot = await fetchPlateRotationSnapshot();
+  writePlateRankings(db, [...snapshot.rankings.kaipan, ...snapshot.rankings.ths]);
+  if (snapshot.curves.kaipan) writePlatePayload(db, "curve", "kaipan", "", snapshot.curves.kaipan, snapshot.status);
+  if (snapshot.curves.ths) writePlatePayload(db, "curve", "ths", "", snapshot.curves.ths, snapshot.status);
+  for (const detail of snapshot.details) writePlatePayload(db, "detail", detail.source, detail.plateCode, detail, snapshot.status);
+  writePlatePayload(db, "status", "all", "", snapshot.status, snapshot.status);
+  touch(db);
+  const updated =
+    snapshot.rankings.kaipan.length +
+    snapshot.rankings.ths.length +
+    snapshot.details.length +
+    Number(Boolean(snapshot.curves.kaipan)) +
+    Number(Boolean(snapshot.curves.ths));
+  return {
+    ok: snapshot.status.ok,
+    updated,
+    message: snapshot.status.message,
+    state: await getAppState(),
+  };
+}
+
+export async function refreshPlateDetailData(plateCode: string, plateName = ""): Promise<PlateRefreshResult> {
+  const db = getDb();
+  const detail = await fetchPlateDetail(plateCode, plateName);
+  const status: PlateRefreshStatus = {
+    ok: true,
+    message: `已刷新 ${detail.plateName} 龙头和强度数据`,
+    refreshedAt: detail.refreshedAt,
+  };
+  writePlatePayload(db, "detail", detail.source, detail.plateCode, detail, status);
+  writePlatePayload(db, "status", "all", "", status, status);
+  touch(db);
+  return { ok: true, updated: 1, message: status.message, state: await getAppState() };
+}
+
+export async function applyCandidateMarketSuggestion(candidateId: string): Promise<AppState> {
+  const db = getDb();
+  const candidate = findCandidateById(db, candidateId);
+  if (!candidate) throw new Error("标的不存在");
+  const suggestion = buildMarketSuggestion(candidate, readPlateState(db, [candidate]));
+  if (!suggestion) throw new Error("暂无可采纳的板块市场建议");
+  const next: Candidate = {
+    ...candidate,
+    market: suggestion.market,
+    updatedAt: new Date().toISOString(),
+    scores: { market: 0, fundamental: 0, risk: 0, total: 0 },
+  };
+  next.scores = scoreCandidate(next);
+  writeCandidate(db, next);
+  touch(db);
+  return getAppState();
+}
+
+export async function confirmPlateCandidateDraft(draft: PlateCandidateDraft): Promise<AppState> {
+  await upsertCandidate({
+    name: draft.name,
+    code: draft.code,
+    theme: draft.theme,
+    tags: draft.tags,
+    thesis: draft.thesis,
+    riskNotes: draft.riskNotes,
+    rs: draft.market.rs,
+    themeScore: draft.market.theme,
+    flow: draft.market.flow,
+    structure: draft.market.structure,
+    catalyst: draft.market.catalyst,
+    sample: false,
+  });
+  return getAppState();
+}
+
 function initialize(db: DatabaseSync): void {
   db.exec(`
     PRAGMA journal_mode = WAL;
@@ -391,7 +438,34 @@ function initialize(db: DatabaseSync): void {
       review_date TEXT NOT NULL DEFAULT '',
       created_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS plate_rankings (
+      id TEXT PRIMARY KEY,
+      source TEXT NOT NULL,
+      trade_date TEXT NOT NULL,
+      rank INTEGER NOT NULL,
+      code TEXT NOT NULL,
+      name TEXT NOT NULL,
+      value TEXT NOT NULL,
+      numeric_value REAL,
+      value_type TEXT NOT NULL,
+      color TEXT NOT NULL,
+      refreshed_at TEXT NOT NULL,
+      UNIQUE(source, trade_date, rank, code)
+    );
+    CREATE INDEX IF NOT EXISTS idx_plate_rankings_latest
+      ON plate_rankings(source, refreshed_at, rank);
+    CREATE TABLE IF NOT EXISTS plate_payloads (
+      kind TEXT NOT NULL,
+      source TEXT NOT NULL DEFAULT '',
+      plate_code TEXT NOT NULL DEFAULT '',
+      payload_json TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT '',
+      message TEXT NOT NULL DEFAULT '',
+      refreshed_at TEXT NOT NULL,
+      PRIMARY KEY(kind, source, plate_code)
+    );
   `);
+  removeMockCandidates(db);
   seedIfEmpty(db);
 }
 
@@ -400,7 +474,7 @@ function seedIfEmpty(db: DatabaseSync): void {
   if (count > 0) return;
 
   const legacy = readLegacyDb();
-  const legacyCandidates = legacy?.candidates?.length ? legacy.candidates : seedCandidates;
+  const legacyCandidates = (legacy?.candidates || []).filter(isRealLegacyCandidate);
   for (const item of legacyCandidates) {
     writeCandidate(db, normalizeCandidate(mapLegacyCandidate(item as CandidateInput)));
   }
@@ -414,6 +488,24 @@ function seedIfEmpty(db: DatabaseSync): void {
   writeSetting(db, "maxSingleWeight", String(settings.maxSingleWeight));
   writeSetting(db, "weakMarketMaxWeight", String(settings.weakMarketMaxWeight));
   touch(db);
+}
+
+function removeMockCandidates(db: DatabaseSync): void {
+  const ids = db
+    .prepare("SELECT id FROM candidates WHERE sample = 1 OR code LIKE 'DEMO-%'")
+    .all()
+    .map((row) => String((row as { id: string }).id || ""))
+    .filter(Boolean);
+  for (const id of ids) {
+    db.prepare("DELETE FROM holdings WHERE candidate_id = ?").run(id);
+    db.prepare("DELETE FROM journal WHERE candidate_id = ?").run(id);
+  }
+  db.prepare("DELETE FROM candidates WHERE sample = 1 OR code LIKE 'DEMO-%'").run();
+}
+
+function isRealLegacyCandidate(item: Record<string, unknown>): boolean {
+  const code = String(item.code || "").trim();
+  return Boolean(item.name && code && item.theme && !item.sample && !code.toUpperCase().startsWith("DEMO-"));
 }
 
 function readLegacyDb(): LegacyDb | undefined {
@@ -663,6 +755,112 @@ function writeSetting(db: DatabaseSync, key: string, value: string): void {
     key,
     value,
   );
+}
+
+function writePlateRankings(db: DatabaseSync, rankings: PlateRankingItem[]): void {
+  const statement = db.prepare(
+    `INSERT INTO plate_rankings (
+      id, source, trade_date, rank, code, name, value, numeric_value, value_type, color, refreshed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source, trade_date, rank, code) DO UPDATE SET
+      name = excluded.name,
+      value = excluded.value,
+      numeric_value = excluded.numeric_value,
+      value_type = excluded.value_type,
+      color = excluded.color,
+      refreshed_at = excluded.refreshed_at`,
+  );
+  for (const item of rankings) {
+    statement.run(
+      `${item.source}:${item.tradeDate}:${item.rank}:${item.code}`,
+      item.source,
+      item.tradeDate,
+      item.rank,
+      item.code,
+      item.name,
+      item.value,
+      item.numericValue,
+      item.valueType,
+      item.color,
+      item.refreshedAt,
+    );
+  }
+}
+
+function writePlatePayload(
+  db: DatabaseSync,
+  kind: string,
+  source: string,
+  plateCode: string,
+  payload: unknown,
+  status: PlateRefreshStatus,
+): void {
+  db.prepare(
+    `INSERT INTO plate_payloads (
+      kind, source, plate_code, payload_json, status, message, refreshed_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(kind, source, plate_code) DO UPDATE SET
+      payload_json = excluded.payload_json,
+      status = excluded.status,
+      message = excluded.message,
+      refreshed_at = excluded.refreshed_at`,
+  ).run(kind, source, plateCode, JSON.stringify(payload), status.ok ? "ok" : "error", status.message, status.refreshedAt);
+}
+
+function readPlateState(db: DatabaseSync, candidates: Candidate[]): PlateRotationState {
+  const state = emptyPlateState();
+  state.rankings.kaipan = readLatestPlateRankings(db, "kaipan");
+  state.rankings.ths = readLatestPlateRankings(db, "ths");
+  state.curves.kaipan = readPlatePayload<PlateCurve>(db, "curve", "kaipan", "");
+  state.curves.ths = readPlatePayload<PlateCurve>(db, "curve", "ths", "");
+  state.details = readPlateDetails(db);
+  state.status = readPlatePayload<PlateRefreshStatus>(db, "status", "all", "");
+  state.suggestions = candidates
+    .map((candidate) => buildMarketSuggestion(candidate, state))
+    .filter((suggestion): suggestion is NonNullable<typeof suggestion> => Boolean(suggestion));
+  state.drafts = buildPlateCandidateDrafts(state);
+  return state;
+}
+
+function readLatestPlateRankings(db: DatabaseSync, source: PlateRotationSource): PlateRankingItem[] {
+  const latest = db
+    .prepare("SELECT refreshed_at FROM plate_rankings WHERE source = ? ORDER BY refreshed_at DESC LIMIT 1")
+    .get(source) as { refreshed_at?: string } | undefined;
+  if (!latest?.refreshed_at) return [];
+  return db
+    .prepare("SELECT * FROM plate_rankings WHERE source = ? AND refreshed_at = ? ORDER BY rank ASC")
+    .all(source, latest.refreshed_at)
+    .map((row) => plateRankingFromRow(row as PlateRankingRow));
+}
+
+function plateRankingFromRow(row: PlateRankingRow): PlateRankingItem {
+  return {
+    source: row.source,
+    tradeDate: row.trade_date,
+    rank: Number(row.rank),
+    code: row.code,
+    name: row.name,
+    value: row.value,
+    numericValue: nullableNumber(row.numeric_value),
+    valueType: row.value_type,
+    color: row.color,
+    refreshedAt: row.refreshed_at,
+  };
+}
+
+function readPlatePayload<T>(db: DatabaseSync, kind: string, source: string, plateCode: string): T | null {
+  const row = db
+    .prepare("SELECT payload_json FROM plate_payloads WHERE kind = ? AND source = ? AND plate_code = ?")
+    .get(kind, source, plateCode) as { payload_json?: string } | undefined;
+  return row?.payload_json ? safeJson<T>(row.payload_json, null as T) : null;
+}
+
+function readPlateDetails(db: DatabaseSync): PlateDetail[] {
+  return db
+    .prepare("SELECT * FROM plate_payloads WHERE kind = 'detail' ORDER BY refreshed_at DESC LIMIT 10")
+    .all()
+    .map((row) => safeJson<PlateDetail>((row as PlatePayloadRow).payload_json, null as unknown as PlateDetail))
+    .filter((detail): detail is PlateDetail => Boolean(detail?.plateCode));
 }
 
 function touch(db: DatabaseSync): void {

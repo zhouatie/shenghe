@@ -4,16 +4,34 @@ import { FormEvent, ReactNode, useMemo, useState, useTransition } from "react";
 import {
   addHoldingAction,
   addJournalAction,
+  applyMarketSuggestionAction,
   clearJournalAction,
+  confirmPlateDraftAction,
   createCandidateAction,
   deleteCandidateAction,
   deleteHoldingAction,
   deleteJournalAction,
   importCsvAction,
+  refreshPlateDetailAction,
+  refreshPlatesAction,
   refreshQuotesAction,
 } from "@/app/actions";
 import { themeColor } from "@/lib/scoring";
-import type { AppState, Candidate, CandidateInput, HoldingInput, JournalInput, ThemeSummary } from "@/lib/types";
+import type {
+  AppState,
+  Candidate,
+  CandidateInput,
+  MarketScoreSuggestion,
+  HoldingInput,
+  JournalInput,
+  PlateCandidateDraft,
+  PlateCurve,
+  PlateCurveSeries,
+  PlateDetail,
+  PlateRankingItem,
+  PlateRotationState,
+  ThemeSummary,
+} from "@/lib/types";
 
 type Props = {
   initialState: AppState;
@@ -22,6 +40,9 @@ type Props = {
 export default function Dashboard({ initialState }: Props) {
   const [state, setState] = useState(initialState);
   const [selectedCandidateId, setSelectedCandidateId] = useState(initialState.candidates[0]?.id || "");
+  const [selectedPlateCode, setSelectedPlateCode] = useState(
+    initialState.plate.details[0]?.plateCode || initialState.plate.rankings.kaipan[0]?.code || "",
+  );
   const [activeTheme, setActiveTheme] = useState("全部");
   const [themeMode, setThemeMode] = useState("全部");
   const [query, setQuery] = useState("");
@@ -31,6 +52,9 @@ export default function Dashboard({ initialState }: Props) {
 
   const selectedCandidate =
     state.candidates.find((candidate) => candidate.id === selectedCandidateId) || state.candidates[0];
+  const selectedSuggestion = selectedCandidate
+    ? state.plate.suggestions.find((suggestion) => suggestion.candidateId === selectedCandidate.id)
+    : undefined;
 
   const visibleThemes = useMemo(
     () => state.themes.filter((theme) => themeMode === "全部" || theme.mode === themeMode),
@@ -166,6 +190,52 @@ export default function Dashboard({ initialState }: Props) {
     document.querySelector("#holdings")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  function refreshPlates() {
+    startTransition(async () => {
+      try {
+        const result = await refreshPlatesAction();
+        setState(result.state);
+        setSelectedPlateCode(
+          result.state.plate.details[0]?.plateCode || result.state.plate.rankings.kaipan[0]?.code || result.state.plate.rankings.ths[0]?.code || "",
+        );
+        setNotice(result.message);
+      } catch (error) {
+        setNotice(error instanceof Error ? `板块刷新失败：${error.message}` : "板块刷新失败");
+      }
+    });
+  }
+
+  function refreshPlateDetail(item: PlateRankingItem) {
+    setSelectedPlateCode(item.code);
+    startTransition(async () => {
+      try {
+        const result = await refreshPlateDetailAction(item.code, item.name);
+        setState(result.state);
+        setNotice(result.message);
+      } catch (error) {
+        setNotice(error instanceof Error ? `板块详情失败：${error.message}` : "板块详情失败");
+      }
+    });
+  }
+
+  function applySuggestion(candidate: Candidate) {
+    run(() => applyMarketSuggestionAction(candidate.id), "已采纳市场评分建议");
+  }
+
+  function confirmDraft(draft: PlateCandidateDraft) {
+    startTransition(async () => {
+      try {
+        const next = await confirmPlateDraftAction(draft);
+        const saved = next.candidates.find((candidate) => candidate.code === draft.code) || next.candidates[0];
+        setState(next);
+        setSelectedCandidateId(saved?.id || "");
+        setNotice(`${draft.name} 已入池`);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "草稿入池失败");
+      }
+    });
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="主导航">
@@ -179,6 +249,7 @@ export default function Dashboard({ initialState }: Props) {
         <nav className="nav-stack">
           {[
             ["data", "数据台"],
+            ["plates", "板块数据"],
             ["radar", "主线雷达"],
             ["candidates", "候选池"],
             ["logic", "逻辑卡"],
@@ -242,6 +313,9 @@ export default function Dashboard({ initialState }: Props) {
                   >
                     刷新行情
                   </button>
+                  <button className="command-button" type="button" onClick={refreshPlates}>
+                    刷新板块
+                  </button>
                   <a className="icon-button" href="/api/export" title="导出数据" aria-label="导出数据">
                     ↓
                   </a>
@@ -280,6 +354,15 @@ export default function Dashboard({ initialState }: Props) {
               </div>
             </section>
 
+            <PlateSection
+              plate={state.plate}
+              selectedPlateCode={selectedPlateCode}
+              onSelectPlate={setSelectedPlateCode}
+              onRefreshPlates={refreshPlates}
+              onRefreshDetail={refreshPlateDetail}
+              onConfirmDraft={confirmDraft}
+            />
+
             <section className="tool-section" id="radar">
               <div className="section-heading">
                 <div>
@@ -304,7 +387,13 @@ export default function Dashboard({ initialState }: Props) {
               </div>
               <div className="theme-grid">
                 {visibleThemes.map((theme) => (
-                  <ThemeCard key={theme.id} theme={theme} active={activeTheme === theme.name} onClick={() => setActiveTheme(theme.name)} />
+                  <ThemeCard
+                    key={theme.id}
+                    theme={theme}
+                    plateHint={plateHintForTheme(theme.name, state.plate)}
+                    active={activeTheme === theme.name}
+                    onClick={() => setActiveTheme(theme.name)}
+                  />
                 ))}
               </div>
             </section>
@@ -520,7 +609,13 @@ export default function Dashboard({ initialState }: Props) {
 
           <aside className="logic-panel" id="logic" aria-label="个股逻辑卡">
             {selectedCandidate ? (
-              <LogicCard candidate={selectedCandidate} onAddHolding={addSelectedHolding} onDraftJournal={draftJournal} />
+              <LogicCard
+                candidate={selectedCandidate}
+                suggestion={selectedSuggestion}
+                onAddHolding={addSelectedHolding}
+                onDraftJournal={draftJournal}
+                onApplySuggestion={applySuggestion}
+              />
             ) : (
               <article className="logic-card">
                 <div className="empty-state">先在数据台加入标的</div>
@@ -530,7 +625,7 @@ export default function Dashboard({ initialState }: Props) {
         </div>
 
         <footer className="risk-footer">
-          本工具仅用于个人研究流程管理。所有评分来自你录入或导入的数据，不提供收益承诺、价格预测、买卖时机或具体投资建议。
+          本工具仅用于个人研究流程管理。评分来自你录入、导入、Yahoo Finance 行情刷新或板块轮动接口辅助数据；板块数据来自第三方公开市场行情接口，市场评分建议不等同于买入、卖出、仓位或收益建议。
         </footer>
       </main>
     </div>
@@ -553,6 +648,259 @@ const fundamentalFields = [
   ["governance", "治理透明", 4, 6],
   ["riskPenalty", "风险扣分", 8, 30],
 ];
+
+function PlateSection({
+  plate,
+  selectedPlateCode,
+  onSelectPlate,
+  onRefreshPlates,
+  onRefreshDetail,
+  onConfirmDraft,
+}: {
+  plate: PlateRotationState;
+  selectedPlateCode: string;
+  onSelectPlate: (code: string) => void;
+  onRefreshPlates: () => void;
+  onRefreshDetail: (item: PlateRankingItem) => void;
+  onConfirmDraft: (draft: PlateCandidateDraft) => void;
+}) {
+  const selectedDetail =
+    plate.details.find((detail) => detail.plateCode === selectedPlateCode) ||
+    plate.details[0] ||
+    null;
+  const visibleDrafts = selectedDetail
+    ? plate.drafts.filter((draft) => draft.sourcePlateCode === selectedDetail.plateCode)
+    : plate.drafts.slice(0, 6);
+
+  return (
+    <section className="tool-section" id="plates">
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">Plate Rotation</p>
+          <h3>板块数据</h3>
+        </div>
+        <button className="command-button" type="button" onClick={onRefreshPlates}>
+          刷新板块
+        </button>
+      </div>
+
+      <p className={`notice ${plate.status?.ok === false ? "notice-risk" : ""}`}>
+        {plate.status
+          ? `${plate.status.message} · ${formatDateTime(plate.status.refreshedAt)}`
+          : "暂无板块数据，刷新后展示开盘啦强度榜、同花顺涨幅榜、排名曲线和龙头草稿。"}
+      </p>
+
+      <div className="plate-grid">
+        <PlateRankingList
+          title="开盘啦强度榜"
+          caption="强度分"
+          items={plate.rankings.kaipan}
+          selectedPlateCode={selectedPlateCode}
+          onSelectPlate={onSelectPlate}
+          onRefreshDetail={onRefreshDetail}
+        />
+        <PlateRankingList
+          title="同花顺涨幅榜"
+          caption="涨幅%"
+          items={plate.rankings.ths}
+          selectedPlateCode={selectedPlateCode}
+          onSelectPlate={onSelectPlate}
+          onRefreshDetail={onRefreshDetail}
+        />
+      </div>
+
+      <div className="plate-detail-grid">
+        <PlateCurvePanel curve={plate.curves.kaipan} title="开盘啦排名曲线" />
+        <PlateCurvePanel curve={plate.curves.ths} title="同花顺排名曲线" />
+      </div>
+
+      <div className="plate-detail-grid">
+        <PlateDetailPanel detail={selectedDetail} />
+        <PlateDraftPanel drafts={visibleDrafts} onConfirmDraft={onConfirmDraft} />
+      </div>
+    </section>
+  );
+}
+
+function PlateRankingList({
+  title,
+  caption,
+  items,
+  selectedPlateCode,
+  onSelectPlate,
+  onRefreshDetail,
+}: {
+  title: string;
+  caption: string;
+  items: PlateRankingItem[];
+  selectedPlateCode: string;
+  onSelectPlate: (code: string) => void;
+  onRefreshDetail: (item: PlateRankingItem) => void;
+}) {
+  return (
+    <div className="plate-board">
+      <div className="plate-board-head">
+        <div>
+          <h4>{title}</h4>
+          <span>{caption}</span>
+        </div>
+        <span className="chip">{items[0]?.tradeDate || "未刷新"}</span>
+      </div>
+      <div className="plate-list">
+        {items.length ? (
+          items.map((item) => (
+            <button
+              className={`plate-row ${selectedPlateCode === item.code ? "is-active" : ""}`}
+              type="button"
+              key={`${item.source}-${item.code}-${item.rank}`}
+              onClick={() => onSelectPlate(item.code)}
+            >
+              <span className="plate-rank">#{item.rank}</span>
+              <span className="plate-name">{item.name}</span>
+              <span className={item.color === "green" ? "down-text" : "up-text"}>{item.value}</span>
+              <span
+                className="plate-link"
+                role="button"
+                tabIndex={0}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRefreshDetail(item);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onRefreshDetail(item);
+                  }
+                }}
+              >
+                详情
+              </span>
+            </button>
+          ))
+        ) : (
+          <div className="empty-state">暂无榜单</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlateCurvePanel({ curve, title }: { curve: PlateCurve | null; title: string }) {
+  return (
+    <div className="plate-board">
+      <div className="plate-board-head">
+        <div>
+          <h4>{title}</h4>
+          <span>{curve ? formatDateTime(curve.refreshedAt) : "未刷新"}</span>
+        </div>
+      </div>
+      <div className="curve-list">
+        {curve?.series.length ? (
+          curve.series.map((series) => (
+            <div className="curve-row" key={`${curve.source}-${series.name}`}>
+              <span>{series.name}</span>
+              <strong>{curveSignal(series)}</strong>
+            </div>
+          ))
+        ) : (
+          <div className="empty-state">暂无曲线</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function PlateDetailPanel({ detail }: { detail: PlateDetail | null }) {
+  if (!detail) {
+    return (
+      <div className="plate-board">
+        <div className="empty-state">选择榜单板块并刷新详情后展示龙头和强度</div>
+      </div>
+    );
+  }
+  const latestHeads = detail.dailyHeads[0];
+  const latestStrength = detail.strength[0];
+  return (
+    <div className="plate-board">
+      <div className="plate-board-head">
+        <div>
+          <h4>{detail.plateName}</h4>
+          <span>
+            {sourceLabel(detail.source)} · {formatDateTime(detail.refreshedAt)}
+          </span>
+        </div>
+        <span className="chip">{detail.plateCode}</span>
+      </div>
+      <div className="mini-stat-grid">
+        <div className="mini-stat">
+          <span>强度</span>
+          <strong>{formatNumber(latestStrength?.strength ?? null)}</strong>
+        </div>
+        <div className="mini-stat">
+          <span>量能</span>
+          <strong>{formatNumber(latestStrength?.volume ?? null)}</strong>
+        </div>
+      </div>
+      <div className="dragon-list">
+        {detail.kings.slice(0, 5).map((king) => (
+          <div className="dragon-row" key={king.code}>
+            <span>{king.name}</span>
+            <strong>{king.count}次</strong>
+            <small>{king.positions.slice(0, 2).join(" / ")}</small>
+          </div>
+        ))}
+        {!detail.kings.length ? <div className="empty-state">当日无领涨或近阶段无龙头数据</div> : null}
+      </div>
+      <div className="chip-row">
+        {(latestHeads?.heads || []).slice(0, 5).map((head) => (
+          <span className="chip" key={`${latestHeads?.date}-${head.code}`}>
+            {head.rank} {head.name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PlateDraftPanel({
+  drafts,
+  onConfirmDraft,
+}: {
+  drafts: PlateCandidateDraft[];
+  onConfirmDraft: (draft: PlateCandidateDraft) => void;
+}) {
+  return (
+    <div className="plate-board">
+      <div className="plate-board-head">
+        <div>
+          <h4>龙头草稿</h4>
+          <span>确认后入池</span>
+        </div>
+      </div>
+      <div className="draft-list">
+        {drafts.length ? (
+          drafts.map((draft) => (
+            <article className="draft-card" key={`${draft.sourcePlateCode}-${draft.code}`}>
+              <div>
+                <strong>{draft.name}</strong>
+                <span>
+                  {draft.code} · {draft.theme}
+                </span>
+              </div>
+              <p>{draft.evidence.slice(0, 2).join("；")}</p>
+              <button className="command-button" type="button" onClick={() => onConfirmDraft(draft)}>
+                入池
+              </button>
+            </article>
+          ))
+        ) : (
+          <div className="empty-state">暂无草稿</div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ScoreFieldset({ title, fields }: { title: string; fields: Array<(string | number)[]> }) {
   return (
@@ -578,7 +926,17 @@ function Metric({ label, value, sub }: { label: string; value: ReactNode; sub: s
   );
 }
 
-function ThemeCard({ theme, active, onClick }: { theme: ThemeSummary; active: boolean; onClick: () => void }) {
+function ThemeCard({
+  theme,
+  plateHint,
+  active,
+  onClick,
+}: {
+  theme: ThemeSummary;
+  plateHint?: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button className={`theme-card ${active ? "is-active" : ""}`} type="button" onClick={onClick}>
       <div className="theme-top">
@@ -599,6 +957,7 @@ function ThemeCard({ theme, active, onClick }: { theme: ThemeSummary; active: bo
           <strong>{formatPercent(theme.turnover)}</strong>
         </div>
       </div>
+      {plateHint ? <div className="plate-hint">{plateHint}</div> : null}
       <div className="theme-tags">
         {theme.catalysts.map((tag) => (
           <span className="chip" key={tag}>
@@ -672,12 +1031,16 @@ function CandidateRow({
 
 function LogicCard({
   candidate,
+  suggestion,
   onAddHolding,
   onDraftJournal,
+  onApplySuggestion,
 }: {
   candidate: Candidate;
+  suggestion?: MarketScoreSuggestion;
   onAddHolding: (candidate: Candidate) => void;
   onDraftJournal: (candidate: Candidate) => void;
+  onApplySuggestion: (candidate: Candidate) => void;
 }) {
   return (
     <article className="logic-card">
@@ -706,6 +1069,19 @@ function LogicCard({
         </LogicBlock>
         <LogicBlock title="价值突变">{mutationText(candidate)}</LogicBlock>
         <LogicBlock title="市场验证">{verificationText(candidate)}</LogicBlock>
+        {suggestion ? (
+          <div className="logic-block suggestion-block">
+            <h4>市场评分建议</h4>
+            <p>
+              {suggestion.plateName} · 市场 {marketTotal(suggestion.market)}/60
+            </p>
+            <ul>
+              {suggestion.evidence.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <LogicBlock title="基本面解释">
           增长加速 {candidate.fundamental.growth}/12，产业位置 {candidate.fundamental.position}/8，估值匹配{" "}
           {candidate.fundamental.valuation}/8。
@@ -738,6 +1114,11 @@ function LogicCard({
         <button className="command-button" type="button" onClick={() => onDraftJournal(candidate)}>
           写入复盘
         </button>
+        {suggestion ? (
+          <button className="command-button" type="button" onClick={() => onApplySuggestion(candidate)}>
+            采纳市场分
+          </button>
+        ) : null}
       </div>
     </article>
   );
@@ -887,8 +1268,62 @@ function formatDate(value: string): string {
   return new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit" }).format(new Date(value));
 }
 
+function formatDateTime(value: string): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
 function scoreClass(score: number): string {
   if (score >= 78) return "";
   if (score >= 64) return "warn";
   return "risk";
+}
+
+function marketTotal(market: Candidate["market"]): number {
+  return market.rs + market.theme + market.flow + market.structure + market.catalyst;
+}
+
+function plateHintForTheme(themeName: string, plate: PlateRotationState): string | undefined {
+  const rows = [...plate.rankings.kaipan, ...plate.rankings.ths].filter((item) => themeMatches(themeName, item.name));
+  if (!rows.length) return undefined;
+  return rows
+    .slice(0, 2)
+    .map((item) => `${sourceLabel(item.source)} #${item.rank} ${item.value}`)
+    .join(" · ");
+}
+
+function curveSignal(series: PlateCurveSeries): string {
+  const latest = series.points[0];
+  const previous = series.points.slice(1).find((point) => point.listed && point.value !== null);
+  if (!latest?.listed) return "未上榜";
+  if (!previous) return `上榜 #${latest.value}`;
+  if ((latest.value || 99) < (previous.value || 99)) return `抬升 #${previous.value}→#${latest.value}`;
+  if ((latest.value || 99) > (previous.value || 99)) return `回落 #${previous.value}→#${latest.value}`;
+  return `持平 #${latest.value}`;
+}
+
+function themeMatches(left: string, right: string): boolean {
+  const a = cleanTheme(left);
+  const b = cleanTheme(right);
+  return Boolean(a && b && (a.includes(b) || b.includes(a)));
+}
+
+function cleanTheme(value: string): string {
+  return String(value || "")
+    .replace(/\([^)]*\)/g, "")
+    .replace(/[（）]/g, "")
+    .replace(/概念|板块|行业|主题/g, "")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+function sourceLabel(source: "kaipan" | "ths"): string {
+  return source === "kaipan" ? "开盘啦" : "同花顺";
 }
